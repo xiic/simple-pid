@@ -1,11 +1,12 @@
-def _clamp(value, limits):
+def _clamp(value, limits, offset = 0):
     lower, upper = limits
+
     if value is None:
         return None
-    elif (upper is not None) and (value > upper):
-        return upper
-    elif (lower is not None) and (value < lower):
-        return lower
+    elif (upper is not None) and (value > upper - offset):
+        return upper - offset
+    elif (lower is not None) and (value < lower - offset):
+        return lower - offset
     return value
 
 
@@ -96,7 +97,7 @@ class PID(object):
         self.reset()
 
         # Set initial state of the controller
-        self._integral = _clamp(starting_output, output_limits)
+        self._integral = _clamp(starting_output, output_limits, self.Kp if self.proportional_on_measurement else 0)
 
     def __call__(self, input_, dt=None):
         """
@@ -141,7 +142,7 @@ class PID(object):
 
         # Compute integral and derivative terms
         self._integral += self.Ki * error * dt
-        self._integral = _clamp(self._integral, self.output_limits)  # Avoid integral windup
+        self._integral = _clamp(self._integral, self.output_limits, self.Kp if self.proportional_on_measurement else 0)  # Avoid integral windup
 
         if self.differential_on_measurement:
             self._derivative = -self.Kd * d_input / dt
@@ -219,7 +220,7 @@ class PID(object):
             self.reset()
 
             self._integral = last_output if (last_output is not None) else 0
-            self._integral = _clamp(self._integral, self.output_limits)
+            self._integral = _clamp(self._integral, self.output_limits, self.Kp if self.proportional_on_measurement else 0)
 
         self._auto_mode = enabled
 
@@ -247,7 +248,7 @@ class PID(object):
         self._min_output = min_output
         self._max_output = max_output
 
-        self._integral = _clamp(self._integral, self.output_limits)
+        self._integral = _clamp(self._integral, self.output_limits, self.Kp if self.proportional_on_measurement else 0)
         self._last_output = _clamp(self._last_output, self.output_limits)
 
     def reset(self):
@@ -261,7 +262,7 @@ class PID(object):
         self._integral = 0
         self._derivative = 0
 
-        self._integral = _clamp(self._integral, self.output_limits)
+        self._integral = _clamp(self._integral, self.output_limits, self.Kp if self.proportional_on_measurement else 0)
 
         self._last_time = self.time_fn()
         self._last_output = None
